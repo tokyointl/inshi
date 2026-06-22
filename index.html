@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>収入印紙額 計算ツール</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:        #f5f4f1;
+  --surface:   #ffffff;
+  --border:    #ddd9d0;
+  --ink:       #1c1c1c;
+  --muted:     #706a5f;
+  --accent:    #1a4f8b;
+  --accent-lt: #e8f0fa;
+  --red:       #a02020;
+  --red-lt:    #fdf0f0;
+  --green:     #1e6645;
+  --green-lt:  #ebf7f1;
+  --gold:      #7a5c00;
+  --gold-lt:   #fdf7e3;
+  --tag-bg:    #e4e0d8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* HEADER */
+header {
+  background: var(--accent);
+  color: #fff;
+  padding: 1.8rem 1.4rem 1.4rem;
+  border-bottom: 3px solid #0e2f5a;
+}
+header .eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #9bbde0;
+  margin-bottom: 0.4rem;
+}
+header h1 {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+header p {
+  font-size: 0.78rem;
+  color: #a8c4e0;
+  margin-top: 0.3rem;
+}
+
+/* LAYOUT */
+.wrap {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 1.6rem 1rem 3rem;
+  display: grid;
+  gap: 1.4rem;
+}
+
+/* CARD */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.card-head {
+  background: #f0ede7;
+  border-bottom: 1px solid var(--border);
+  padding: 0.65rem 1.2rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.card-body { padding: 1.2rem; }
+
+/* FORM */
+.field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 1rem; }
+.field:last-child { margin-bottom: 0; }
+label { font-size: 0.78rem; font-weight: 700; color: var(--muted); }
+label .sub { font-weight: 400; }
+
+.input-wrap { position: relative; }
+input[type="number"], select {
+  width: 100%;
+  padding: 0.6rem 4.2rem 0.6rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s;
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-inner-spin-button { display: none; }
+input:focus, select:focus { border-color: var(--accent); background: #fff; }
+.unit {
+  position: absolute;
+  right: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--muted);
+  pointer-events: none;
+}
+select { padding-right: 2rem; appearance: none; cursor: pointer; }
+.hint { font-size: 0.7rem; color: var(--muted); }
+
+/* DOC TYPE GRID */
+.doc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+@media (max-width: 520px) { .doc-grid { grid-template-columns: 1fr; } }
+
+.doc-btn {
+  padding: 0.65rem 0.8rem;
+  border: 1.5px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+.doc-btn:hover { border-color: var(--accent); background: var(--accent-lt); }
+.doc-btn.active { border-color: var(--accent); background: var(--accent-lt); }
+.doc-btn .doc-name { font-weight: 700; font-size: 0.85rem; color: var(--ink); }
+.doc-btn .doc-no { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--muted); }
+.doc-btn .doc-ex { font-size: 0.7rem; color: var(--muted); margin-top: 0.15rem; }
+
+/* CALC BUTTON */
+.btn-calc {
+  width: 100%;
+  padding: 0.9rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-calc:hover { background: #0e2f5a; }
+
+/* RESULT */
+#result { display: none; }
+
+.result-banner {
+  padding: 1.2rem 1.4rem;
+  border-radius: 3px;
+  margin-bottom: 1.2rem;
+}
+.result-banner.taxable { background: var(--gold-lt); border-left: 4px solid var(--gold); }
+.result-banner.free    { background: var(--green-lt); border-left: 4px solid var(--green); }
+.result-banner.reduced { background: var(--accent-lt); border-left: 4px solid var(--accent); }
+
+.stamp-amount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2rem;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.2;
+}
+.stamp-label { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.3rem; }
+.stamp-note  { font-size: 0.75rem; color: var(--muted); margin-top: 0.4rem; }
+
+.detail-table { width: 100%; border-collapse: collapse; }
+.detail-table tr { border-bottom: 1px solid var(--border); }
+.detail-table tr:last-child { border-bottom: none; }
+.detail-table td { padding: 0.5rem 0.3rem; font-size: 0.82rem; vertical-align: top; }
+.detail-table td:last-child {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+.detail-table .highlight td { font-weight: 700; }
+.detail-table .highlight td:last-child { color: var(--accent); font-size: 1rem; }
+.badge {
+  display: inline-block;
+  background: var(--accent-lt);
+  color: var(--accent);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.05rem 0.35rem;
+  border-radius: 2px;
+  margin-left: 0.3rem;
+  vertical-align: middle;
+}
+.badge.red { background: var(--red-lt); color: var(--red); }
+
+.notice {
+  font-size: 0.72rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 0.9rem;
+  margin-top: 0.4rem;
+  line-height: 1.6;
+}
+
+/* TABLE SHEET */
+.sheet-toggle {
+  font-size: 0.75rem;
+  color: var(--accent);
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+.tax-table-wrap { overflow-x: auto; margin-top: 0.8rem; }
+.tax-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+.tax-table th {
+  background: var(--accent);
+  color: #fff;
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  white-space: nowrap;
+}
+.tax-table td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); }
+.tax-table tr.active-row td { background: var(--gold-lt); font-weight: 700; }
+.tax-table tr.reduced-row td:last-child { color: var(--accent); }
+
+footer {
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--muted);
+  padding: 1rem 1rem 2rem;
+  border-top: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">印紙税法 別表第一 · Revenue Stamp Calculator</div>
+  <h1>収入印紙額 計算ツール</h1>
+  <p>印紙税法課税物件表（令和6年4月以降）に基づき印紙税額を算出します</p>
+</header>
+
+<div class="wrap">
+
+  <!-- STEP 1: 文書種別 -->
+  <div class="card">
+    <div class="card-head">① 文書の種類を選択</div>
+    <div class="card-body">
+      <div class="doc-grid" id="doc-grid"></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: 金額 -->
+  <div class="card" id="amount-card">
+    <div class="card-head">② 契約金額を入力</div>
+    <div class="card-body">
+      <div class="field">
+        <label id="amount-label">記載金額 <span class="sub">（税抜で記載されている場合は税抜金額）</span></label>
+        <div class="input-wrap">
+          <input type="number" id="amount" min="0" step="1" placeholder="例：5000000">
+          <span class="unit">円</span>
+        </div>
+        <div class="hint" id="amount-hint">金額の記載がない場合は 0 を入力してください（200円）</div>
+      </div>
+      <div class="field" id="reduced-field" style="display:none;">
+        <label>軽減措置の適用 <span class="sub">（令和9年3月31日まで）</span></label>
+        <select id="use-reduced">
+          <option value="1">適用する（平成26年4月1日以降に作成）</option>
+          <option value="0">適用しない（本則税率）</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-calc" onclick="calculate()">印紙税額を計算する</button>
+
+  <!-- RESULT -->
+  <div id="result">
+    <div class="card">
+      <div class="card-head">計算結果</div>
+      <div class="card-body">
+        <div id="result-banner" class="result-banner taxable">
+          <div class="stamp-label" id="result-doc"></div>
+          <div class="stamp-amount" id="result-amount"></div>
+          <div class="stamp-note"  id="result-note"></div>
+        </div>
+        <table class="detail-table">
+          <tbody id="detail-rows"></tbody>
+        </table>
+        <p class="notice" style="margin-top:0.9rem;">
+          ※本ツールは概算計算です。電子契約（電磁的記録による作成）には印紙税は課されません。
+          消費税額が明確に区分記載された契約書では税抜金額で判定します。
+          実際の申告・貼付は税理士等にご確認ください。
+        </p>
+      </div>
+    </div>
+
+    <!-- TAX TABLE -->
+    <div class="card">
+      <div class="card-head" style="justify-content:space-between;">
+        <span>税額表（選択文書種別）</span>
+        <button class="sheet-toggle" onclick="toggleTable()">▼ 表示</button>
+      </div>
+      <div id="tax-table-body" style="display:none;" class="card-body">
+        <div class="tax-table-wrap">
+          <table class="tax-table" id="tax-table"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<footer>
+  印紙税法（昭和42年法律第23号）別表第一 課税物件表・国税庁No.7140/7141/7142準拠 ／ 2026年6月現在
+</footer>
+
+<script>
+// ============================================================
+// DATA: 課税物件表（主要文書）
+// ============================================================
+const DOCS = [
+  {
+    id: 'real_estate',
+    no: '第1号文書（1）',
+    name: '不動産の譲渡契約書',
+    examples: '土地・建物の売買契約書',
+    hasAmount: true,
+    hasReduced: true,  // 軽減措置あり
+    amountLabel: '記載金額（売買代金等）',
+    hint: '消費税が明確に区分記載されている場合は税抜金額で判定',
+    // 本則税額表
+    table: [
+      { label: '1万円未満', max: 9999,          tax: 0,      note: '非課税' },
+      { label: '10万円以下', max: 100000,        tax: 200  },
+      { label: '50万円以下', max: 500000,        tax: 200  },
+      { label: '100万円以下', max: 1000000,      tax: 500  },
+      { label: '500万円以下', max: 5000000,      tax: 1000 },
+      { label: '1,000万円以下', max: 10000000,   tax: 5000 },
+      { label: '5,000万円以下', max: 50000000,   tax: 10000 },
+      { label: '1億円以下', max: 100000000,      tax: 30000 },
+      { label: '5億円以下', max: 500000000,      tax: 60000 },
+      { label: '10億円以下', max: 1000000000,    tax: 160000 },
+      { label: '50億円以下', max: 5000000000,    tax: 320000 },
+      { label: '50億円超', max: Infinity,        tax: 480000 },
+    ],
+    // 軽減後税額（10万円超のもの）
+    reducedTable: [
+      { label: '10万円以下', max: 100000,        tax: 200,   note: '軽減対象外（本則）' },
+      { label: '50万円以下', max: 500000,        tax: 200  },
+      { label: '100万円以下', max: 1000000,      tax: 500  },
+      { label: '500万円以下', max: 5000000,      tax: 1000 },
+      { label: '1,000万円以下', max: 10000000,   tax: 5000 },
+      { label: '5,000万円以下', max: 50000000,   tax: 10000 },
+      { label: '1億円以下', max: 100000000,      tax: 30000 },
+      { label: '5億円以下', max: 500000000,      tax: 60000 },
+      { label: '10億円以下', max: 1000000000,    tax: 160000 },
+      { label: '50億円以下', max: 5000000000,    tax: 320000 },
+      { label: '50億円超', max: Infinity,        tax: 480000 },
+    ],
+    reducedNote: '※軽減措置後の税額（令和6年4月1日以降・令和9年3月31日まで）',
+    tableTitle: '不動産譲渡契約書の印紙税額（第1号文書）',
+  },
+  {
+    id: 'loan',
+    no: '第1号文書（3）',
+    name: '消費貸借契約書（金銭消費貸借）',
+    examples: '金銭消費貸借契約書・ローン契約書',
+    hasAmount: true,
+    hasReduced: false,
+    amountLabel: '貸付金額',
+    hint: '軽減措置は適用されません（本則税率）',
+    table: [
+      { label: '1万円未満', max: 9999,          tax: 0,      note: '非課税' },
+      { label: '10万円以下', max: 100000,        tax: 200  },
+      { label: '50万円以下', max: 500000,        tax: 200  },
+      { label: '100万円以下', max: 1000000,      tax: 500  },
+      { label: '500万円以下', max: 5000000,      tax: 1000 },
+      { label: '1,000万円以下', max: 10000000,   tax: 5000 },
+      { label: '5,000万円以下', max: 50000000,   tax: 10000 },
+      { label: '1億円以下', max: 100000000,      tax: 30000 },
+      { label: '5億円以下', max: 500000000,      tax: 60000 },
+      { label: '10億円以下', max: 1000000000,    tax: 160000 },
+      { label: '50億円以下', max: 5000000000,    tax: 320000 },
+      { label: '50億円超', max: Infinity,        tax: 480000 },
+    ],
+    tableTitle: '消費貸借契約書の印紙税額（第1号文書）',
+  },
+  {
+    id: 'construction',
+    no: '第2号文書',
+    name: '請負契約書（工事請負など）',
+    examples: '建設工事・物品加工・広告・業務委託など',
+    hasAmount: true,
+    hasReduced: true,
+    amountLabel: '請負金額（契約金額）',
+    hint: '工事請負契約書は100万円超で軽減措置の対象',
+    table: [
+      { label: '1万円未満', max: 9999,          tax: 0,      note: '非課税' },
+      { label: '100万円以下', max: 1000000,      tax: 200  },
+      { label: '200万円以下', max: 2000000,      tax: 400  },
+      { label: '300万円以下', max: 3000000,      tax: 1000 },
+      { label: '500万円以下', max: 5000000,      tax: 2000 },
+      { label: '1,000万円以下', max: 10000000,   tax: 10000 },
+      { label: '5,000万円以下', max: 50000000,   tax: 20000 },
+      { label: '1億円以下', max: 100000000,      tax: 60000 },
+      { label: '5億円以下', max: 500000000,      tax: 100000 },
+      { label: '10億円以下', max: 1000000000,    tax: 200000 },
+      { label: '50億円以下', max: 5000000000,    tax: 400000 },
+      { label: '50億円超', max: Infinity,        tax: 600000 },
+    ],
+    // 建設工事請負の軽減（100万円超）
+    reducedTable: [
+      { label: '100万円以下', max: 1000000,      tax: 200,   note: '軽減対象外（本則）' },
+      { label: '200万円以下', max: 2000000,      tax: 200  },
+      { label: '300万円以下', max: 3000000,      tax: 500  },
+      { label: '500万円以下', max: 5000000,      tax: 1000 },
+      { label: '1,000万円以下', max: 10000000,   tax: 5000 },
+      { label: '5,000万円以下', max: 50000000,   tax: 10000 },
+      { label: '1億円以下', max: 100000000,      tax: 30000 },
+      { label: '5億円以下', max: 500000000,      tax: 60000 },
+      { label: '10億円以下', max: 1000000000,    tax: 160000 },
+      { label: '50億円以下', max: 5000000000,    tax: 320000 },
+      { label: '50億円超', max: Infinity,        tax: 480000 },
+    ],
+    reducedNote: '※建設工事の請負契約書の軽減措置後（令和9年3月31日まで・100万円超のもの）',
+    tableTitle: '請負契約書の印紙税額（第2号文書）',
+  },
+  {
+    id: 'lease',
+    no: '第1号文書（2）',
+    name: '土地の賃借権設定・譲渡契約書',
+    examples: '土地賃貸借契約書・地上権設定契約書',
+    hasAmount: true,
+    hasReduced: false,
+    amountLabel: '権利金・地代等の金額',
+    hint: '地代月額×12ヶ月×契約年数が記載金額の目安',
+    table: [
+      { label: '1万円未満', max: 9999,          tax: 0,      note: '非課税' },
+      { label: '10万円以下', max: 100000,        tax: 200  },
+      { label: '50万円以下', max: 500000,        tax: 200  },
+      { label: '100万円以下', max: 1000000,      tax: 500  },
+      { label: '500万円以下', max: 5000000,      tax: 1000 },
+      { label: '1,000万円以下', max: 10000000,   tax: 5000 },
+      { label: '5,000万円以下', max: 50000000,   tax: 10000 },
+      { label: '1億円以下', max: 100000000,      tax: 30000 },
+      { label: '5億円以下', max: 500000000,      tax: 60000 },
+      { label: '10億円以下', max: 1000000000,    tax: 160000 },
+      { label: '50億円以下', max: 5000000000,    tax: 320000 },
+      { label: '50億円超', max: Infinity,        tax: 480000 },
+    ],
+    tableTitle: '土地賃借権設定・譲渡契約書の印紙税額（第1号文書）',
+  },
+  {
+    id: 'ongoing',
+    no: '第7号文書',
+    name: '継続的取引の基本契約書',
+    examples: '取引基本契約書・特約店契約書・代理店契約書',
+    hasAmount: false,
+    hasReduced: false,
+    fixedTax: 4000,
+    hint: '記載金額にかかわらず一律4,000円',
+    tableTitle: '継続的取引基本契約書（第7号文書）',
+    fixedNote: '営業者間で継続的取引を行うための基本条件を定めた契約書（一律）',
+  },
+  {
+    id: 'receipt_sales',
+    no: '第17号文書（1）',
+    name: '売上代金に係る受取書（領収書）',
+    examples: '商品・不動産・賃貸料・請負代金の領収書',
+    hasAmount: true,
+    hasReduced: false,
+    amountLabel: '受取金額',
+    hint: '5万円未満は非課税。消費税が明確に区分記載の場合は税抜で判定',
+    table: [
+      { label: '5万円未満', max: 49999,          tax: 0,      note: '非課税' },
+      { label: '100万円以下', max: 1000000,       tax: 200  },
+      { label: '200万円以下', max: 2000000,       tax: 400  },
+      { label: '300万円以下', max: 3000000,       tax: 600  },
+      { label: '500万円以下', max: 5000000,       tax: 1000 },
+      { label: '1,000万円以下', max: 10000000,    tax: 2000 },
+      { label: '2,000万円以下', max: 20000000,    tax: 4000 },
+      { label: '3,000万円以下', max: 30000000,    tax: 6000 },
+      { label: '5,000万円以下', max: 50000000,    tax: 10000 },
+      { label: '1億円以下', max: 100000000,       tax: 20000 },
+      { label: '2億円以下', max: 200000000,       tax: 40000 },
+      { label: '3億円以下', max: 300000000,       tax: 60000 },
+      { label: '5億円以下', max: 500000000,       tax: 100000 },
+      { label: '10億円以下', max: 1000000000,     tax: 150000 },
+      { label: '10億円超', max: Infinity,         tax: 200000 },
+    ],
+    tableTitle: '売上代金に係る領収書（第17号文書①）',
+  },
+  {
+    id: 'receipt_other',
+    no: '第17号文書（2）',
+    name: '売上代金以外の受取書（領収書）',
+    examples: '保険金・損害賠償金・借入金の領収書など',
+    hasAmount: true,
+    hasReduced: false,
+    amountLabel: '受取金額',
+    hint: '5万円未満は非課税。5万円以上は金額にかかわらず一律200円',
+    table: [
+      { label: '5万円未満', max: 49999, tax: 0,   note: '非課税' },
+      { label: '5万円以上', max: Infinity, tax: 200 },
+    ],
+    tableTitle: '売上代金以外の領収書（第17号文書②）',
+  },
+  {
+    id: 'noamount',
+    no: '第1号・第2号文書',
+    name: '記載金額のない契約書',
+    examples: '金額が定まらない契約書・変更覚書（重要な事項を変更する場合）',
+    hasAmount: false,
+    hasReduced: false,
+    fixedTax: 200,
+    hint: '第1号・第2号文書で記載金額がないもの',
+    tableTitle: '記載金額のない第1・2号文書',
+    fixedNote: '一律200円（ただし文書の性質・内容により号数の判定が必要）',
+  },
+];
+
+// ============================================================
+// UI
+// ============================================================
+let selectedDoc = null;
+
+function buildDocGrid() {
+  const grid = document.getElementById('doc-grid');
+  DOCS.forEach(doc => {
+    const btn = document.createElement('button');
+    btn.className = 'doc-btn';
+    btn.dataset.id = doc.id;
+    btn.innerHTML = `
+      <div class="doc-no">${doc.no}</div>
+      <div class="doc-name">${doc.name}</div>
+      <div class="doc-ex">${doc.examples}</div>`;
+    btn.onclick = () => selectDoc(doc.id);
+    grid.appendChild(btn);
+  });
+}
+
+function selectDoc(id) {
+  selectedDoc = DOCS.find(d => d.id === id);
+  document.querySelectorAll('.doc-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.id === id);
+  });
+  const amtCard = document.getElementById('amount-card');
+  const reducedField = document.getElementById('reduced-field');
+  const amtLabel = document.getElementById('amount-label');
+  const amtHint = document.getElementById('amount-hint');
+
+  if (selectedDoc.hasAmount) {
+    amtCard.style.display = 'block';
+    amtLabel.innerHTML = `${selectedDoc.amountLabel} <span class="sub"></span>`;
+    amtHint.textContent = selectedDoc.hint;
+  } else {
+    amtCard.style.display = 'none';
+  }
+  reducedField.style.display = selectedDoc.hasReduced ? 'block' : 'none';
+  document.getElementById('result').style.display = 'none';
+}
+
+// ============================================================
+// CALC
+// ============================================================
+function getTax(doc, amount, useReduced) {
+  if (!doc.hasAmount) {
+    return { tax: doc.fixedTax, isFree: false, note: doc.fixedNote, rowIndex: -1 };
+  }
+  const tbl = (useReduced && doc.hasReduced && doc.reducedTable) ? doc.reducedTable : doc.table;
+  for (let i = 0; i < tbl.length; i++) {
+    const row = tbl[i];
+    if (amount <= row.max) {
+      return { tax: row.tax, isFree: row.tax === 0, note: row.note || '', rowIndex: i };
+    }
+  }
+  return { tax: 0, isFree: false, note: '', rowIndex: -1 };
+}
+
+function calculate() {
+  if (!selectedDoc) { alert('文書の種類を選択してください。'); return; }
+  const amount = parseInt(document.getElementById('amount').value || '0');
+  const useReduced = document.getElementById('use-reduced').value === '1';
+  const result = getTax(selectedDoc, amount, useReduced);
+
+  // Banner
+  const banner = document.getElementById('result-banner');
+  const docEl  = document.getElementById('result-doc');
+  const amtEl  = document.getElementById('result-amount');
+  const noteEl = document.getElementById('result-note');
+
+  docEl.textContent = `${selectedDoc.no}｜${selectedDoc.name}`;
+
+  if (result.isFree) {
+    banner.className = 'result-banner free';
+    amtEl.textContent = '非課税（0円）';
+    noteEl.textContent = result.note || '記載金額が非課税基準以下です。';
+  } else {
+    banner.className = (useReduced && selectedDoc.hasReduced) ? 'result-banner reduced' : 'result-banner taxable';
+    amtEl.textContent = '¥ ' + result.tax.toLocaleString('ja-JP') + ' 円';
+    noteEl.textContent = (useReduced && selectedDoc.hasReduced) ? '軽減措置適用後の税額（令和9年3月31日まで）' : '';
+  }
+
+  // Detail rows
+  let rows = '';
+  if (selectedDoc.hasAmount) {
+    rows += `<tr><td>記載金額</td><td>${amount.toLocaleString('ja-JP')} 円</td></tr>`;
+  }
+  rows += `<tr><td>文書番号</td><td>${selectedDoc.no}</td></tr>`;
+  if (selectedDoc.hasReduced) {
+    rows += `<tr><td>軽減措置</td><td>${useReduced ? '適用あり <span class="badge">令和9年3月31日まで</span>' : '適用なし（本則）'}</td></tr>`;
+  }
+  rows += `<tr class="highlight"><td>印紙税額</td><td>${result.isFree ? '0円（非課税）' : result.tax.toLocaleString('ja-JP') + ' 円'}</td></tr>`;
+  document.getElementById('detail-rows').innerHTML = rows;
+
+  // Tax table
+  buildTaxTable(selectedDoc, amount, useReduced, result.rowIndex);
+
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function buildTaxTable(doc, amount, useReduced, activeRow) {
+  const tbl = document.getElementById('tax-table');
+  if (!doc.hasAmount && doc.fixedTax !== undefined) {
+    tbl.innerHTML = `<tr><th>区分</th><th>印紙税額</th></tr>
+      <tr class="active-row"><td>${doc.fixedNote}</td><td>${doc.fixedTax.toLocaleString()} 円</td></tr>`;
+    return;
+  }
+  const rows = (useReduced && doc.hasReduced && doc.reducedTable) ? doc.reducedTable : doc.table;
+  let html = `<tr><th>記載金額の区分</th><th>印紙税額${(useReduced && doc.hasReduced) ? '（軽減後）' : ''}</th><th>備考</th></tr>`;
+  rows.forEach((row, i) => {
+    const cls = (i === activeRow) ? ' class="active-row"' : '';
+    html += `<tr${cls}><td>${row.label}</td><td>${row.tax === 0 ? '非課税' : row.tax.toLocaleString() + ' 円'}</td><td>${row.note || ''}</td></tr>`;
+  });
+  tbl.innerHTML = html;
+  if (doc.reducedNote && useReduced && doc.hasReduced) {
+    tbl.insertAdjacentHTML('afterend', `<p style="font-size:0.7rem;color:var(--muted);margin-top:0.4rem;">${doc.reducedNote}</p>`);
+  }
+}
+
+let tableOpen = false;
+function toggleTable() {
+  const body = document.getElementById('tax-table-body');
+  const btn  = document.querySelector('.sheet-toggle');
+  tableOpen = !tableOpen;
+  body.style.display = tableOpen ? 'block' : 'none';
+  btn.textContent = tableOpen ? '▲ 閉じる' : '▼ 表示';
+}
+
+// INIT
+buildDocGrid();
+document.getElementById('amount-card').style.display = 'none';
+</script>
+</body>
+</html>
